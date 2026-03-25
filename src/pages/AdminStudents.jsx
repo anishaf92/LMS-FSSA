@@ -1,81 +1,352 @@
 import React, { useState } from "react";
 
-function AdminStudents() {
-    const [students] = useState([
-        { id: 1, name: "John Doe", email: "john@example.com", courses: 3, status: "Active" },
-        { id: 2, name: "Jane Smith", email: "jane@example.com", courses: 2, status: "Active" },
-        { id: 3, name: "Bob Johnson", email: "bob@example.com", courses: 4, status: "Inactive" },
-        { id: 4, name: "Alice Williams", email: "alice@example.com", courses: 1, status: "Active" },
-    ]);
+const initialStudents = [
+  {
+    id: 1,
+    name: "John Doe",
+    email: "john@example.com",
+    batch: "2024",
+    section: "A",
+    courses: 3,
+    status: "Active",
+  },
+  {
+    id: 2,
+    name: "Jane Smith",
+    email: "jane@example.com",
+    batch: "2024",
+    section: "B",
+    courses: 2,
+    status: "Active",
+  },
+  {
+    id: 3,
+    name: "Bob Johnson",
+    email: "bob@example.com",
+    batch: "2023",
+    section: "A",
+    courses: 4,
+    status: "Inactive",
+  },
+  {
+    id: 4,
+    name: "Alice Williams",
+    email: "alice@example.com",
+    batch: "2023",
+    section: "C",
+    courses: 1,
+    status: "Active",
+  },
+];
 
-    return (
-        <div className="w-full h-screen bg-gray-50 p-8">
-            <div className="max-w-6xl mx-auto">
-                <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-gray-800">Students</h1>
-                    <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-                        Add New Student
-                    </button>
-                </div>
+const emptyForm = {
+  name: "",
+  email: "",
+  batch: "2024",
+  section: "A",
+  courses: "",
+  status: "Active",
+};
 
-                {/* Students Table */}
-                <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                    <table className="w-full">
-                        <thead className="bg-gray-100 border-b">
-                            <tr>
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-                                    Name
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-                                    Email
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-                                    Courses Enrolled
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-                                    Status
-                                </th>
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {students.map((student) => (
-                                <tr key={student.id} className="border-b hover:bg-gray-50">
-                                    <td className="px-6 py-4 text-gray-900 font-medium">
-                                        {student.name}
-                                    </td>
-                                    <td className="px-6 py-4 text-gray-600">{student.email}</td>
-                                    <td className="px-6 py-4 text-gray-600 text-center">
-                                        {student.courses}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span
-                                            className={`px-3 py-1 rounded-full text-sm font-semibold ${student.status === "Active"
-                                                    ? "bg-green-100 text-green-800"
-                                                    : "bg-red-100 text-red-800"
-                                                }`}
-                                        >
-                                            {student.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <button className="text-blue-600 hover:text-blue-800 mr-4">
-                                            Edit
-                                        </button>
-                                        <button className="text-red-600 hover:text-red-800">
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    );
+function Modal({ title, onClose, children }) {
+  return (
+    <div
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-xl p-6 w-[450px] max-w-[95vw] shadow-xl relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 bg-gray-100 w-8 h-8 rounded-full"
+        >
+          ✕
+        </button>
+        <h2 className="text-lg font-bold mb-4">{title}</h2>
+        {children}
+      </div>
+    </div>
+  );
 }
 
-export default AdminStudents;
+const FormRow = ({ label, children }) => {
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-sm font-medium text-gray-700">{label}</label>
+      {children}
+    </div>
+  );
+};
+
+export default function Students() {
+  const [students, setStudents] = useState(initialStudents);
+  const [form, setForm] = useState(() => ({ ...emptyForm }));
+  const [editingId, setEditingId] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [search, setSearch] = useState("");
+  const [deleteId, setDeleteId] = useState(null);
+
+  const filtered = students.filter(
+    (s) =>
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.email.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  function openAdd() {
+    setForm({ ...emptyForm });
+    setEditingId(null);
+    setShowModal(true);
+  }
+
+  function openEdit(student) {
+    setForm({ ...student });
+    setEditingId(student.id);
+    setShowModal(true);
+  }
+
+  function saveStudent() {
+    if (!form.name.trim() || !form.email.trim()) {
+      return alert("Name & Email required");
+    }
+
+    if (editingId) {
+      setStudents((prev) =>
+        prev.map((s) => (s.id === editingId ? { ...s, ...form } : s)),
+      );
+    } else {
+      setStudents((prev) => [
+        ...prev,
+        {
+          ...form,
+          id: Date.now(),
+          courses: Number(form.courses),
+        },
+      ]);
+    }
+
+    setShowModal(false);
+    setForm({ ...emptyForm });
+    setEditingId(null);
+  }
+
+  function confirmDelete() {
+    setStudents((prev) => prev.filter((s) => s.id !== deleteId));
+    setDeleteId(null);
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Students</h1>
+          <button
+            onClick={openAdd}
+            className="bg-blue-600 text-white px-5 py-2 rounded-lg"
+          >
+            + Add Student
+          </button>
+        </div>
+
+        {/* Search */}
+        <input
+          placeholder="Search..."
+          className="mb-4 w-64 px-3 py-2 border rounded-lg"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
+        {/* Table */}
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="p-3 text-left">Name</th>
+                <th className="p-3 text-left">Email</th>
+                <th className="p-3">Batch</th>
+                <th className="p-3">Section</th>
+                <th className="p-3">Courses</th>
+                <th className="p-3">Status</th>
+                <th className="p-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((s) => (
+                <tr key={s.id} className="border-b hover:bg-gray-50">
+                  <td className="p-3">{s.name}</td>
+                  <td className="p-3 text-gray-600">{s.email}</td>
+                  <td className="p-3 text-center">{s.batch}</td>
+                  <td className="p-3 text-center">{s.section}</td>
+                  <td className="p-3 text-center">{s.courses}</td>
+                  <td className="p-3">
+                    <span
+                      className={`px-2 py-1 rounded-full text-sm ${
+                        s.status === "Active"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {s.status}
+                    </span>
+                  </td>
+
+                  {/* ✅ UPDATED BUTTONS */}
+                  <td className="p-3">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => openEdit(s)}
+                        className="px-3 py-1.5 text-sm font-medium rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition"
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        onClick={() => setDeleteId(s.id)}
+                        className="px-3 py-1.5 text-sm font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Add/Edit Modal (UNCHANGED) */}
+      {showModal && (
+        <Modal
+          title={editingId ? "Edit Student" : "Add Student"}
+          onClose={() => setShowModal(false)}
+        >
+          <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+            <div className="col-span-2">
+              <FormRow label="Full Name">
+                <input
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, name: e.target.value }))
+                  }
+                />
+              </FormRow>
+            </div>
+
+            <div className="col-span-2">
+              <FormRow label="Email Address">
+                <input
+                  type="email"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  value={form.email}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, email: e.target.value }))
+                  }
+                />
+              </FormRow>
+            </div>
+
+            <FormRow label="Batch">
+              <select
+                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                value={form.batch}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, batch: e.target.value }))
+                }
+              >
+                <option value="2024">2024</option>
+                <option value="2023">2023</option>
+              </select>
+            </FormRow>
+
+            <FormRow label="Section">
+              <select
+                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                value={form.section}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, section: e.target.value }))
+                }
+              >
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+              </select>
+            </FormRow>
+
+            <FormRow label="Courses Enrolled">
+              <input
+                type="number"
+                min="0"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                value={form.courses}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, courses: e.target.value }))
+                }
+              />
+            </FormRow>
+
+            <FormRow label="Status">
+              <select
+                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                value={form.status}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, status: e.target.value }))
+                }
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </FormRow>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-6 pt-5 border-t border-gray-200">
+            <button
+              className="px-4 py-2 border border-gray-300 rounded-lg"
+              onClick={() => setShowModal(false)}
+            >
+              Cancel
+            </button>
+
+            <button
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+              onClick={saveStudent}
+            >
+              {editingId ? "Save Changes" : "Add Student"}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* ✅ UPDATED DELETE MODAL */}
+      {deleteId && (
+        <Modal title="Delete Student" onClose={() => setDeleteId(null)}>
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              This action cannot be undone. Are you sure you want to delete this
+              student?
+            </p>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => setDeleteId(null)}
+                className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
