@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import * as XLSX from "xlsx";
 
 const initialStudents = [
   {
@@ -94,6 +95,53 @@ export default function Students() {
       s.email.toLowerCase().includes(search.toLowerCase()),
   );
 
+  function handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+      const data = new Uint8Array(event.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet);
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      let added = 0;
+      let skipped = 0;
+
+      const newStudents = rows.map((row, index) => {
+        const student = {
+          id: Date.now() + index,
+          name: row.name?.toString().trim(),
+          email: row.email?.toString().trim(),
+          batch: row.batch?.toString() || "2024",
+          section: row.section?.toString() || "A",
+          courses: Number(row.courses) || 0,
+          status: row.status === "Inactive" ? "Inactive" : "Active",
+        };
+
+        // validation
+        if (!student.name || !emailRegex.test(student.email)) {
+          skipped++;
+          return null;
+        }
+
+        added++;
+        return student;
+      });
+
+      setStudents((prev) => [...prev, ...newStudents.filter(Boolean)]);
+
+      alert(`${added} added, ${skipped} skipped`);
+    };
+
+    reader.readAsArrayBuffer(file);
+  }
+
   function openAdd() {
     setForm({ ...emptyForm });
     setEditingId(null);
@@ -142,12 +190,30 @@ export default function Students() {
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Students</h1>
-          <button
-            onClick={openAdd}
-            className="bg-blue-600 text-white px-5 py-2 rounded-lg"
-          >
-            + Add Student
-          </button>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => document.getElementById("fileInput").click()}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg"
+            >
+              Bulk Upload
+            </button>
+
+            <input
+              id="fileInput"
+              type="file"
+              accept=".xlsx, .xls"
+              hidden
+              onChange={handleFileUpload}
+            />
+
+            <button
+              onClick={openAdd}
+              className="bg-blue-600 text-white px-5 py-2 rounded-lg"
+            >
+              + Add Student
+            </button>
+          </div>
         </div>
 
         {/* Search */}
