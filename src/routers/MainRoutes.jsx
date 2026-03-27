@@ -10,6 +10,7 @@ import AdminDashboard from "../pages/AdminDashboard";
 import AdminMycourse from "../pages/Adminmycourse";
 import AdminStudents from "../pages/AdminStudents";
 import AdminCourseManagement from "../pages/AdminCourseManagement";
+import AdminCourseView from "../pages/AdminCourseView";
 
 import Mycourse from "../pages/mycourse";
 import CourseView from "../pages/CourseView";
@@ -40,6 +41,10 @@ const MainRoutes = createBrowserRouter([
       {
         path: "course-management",
         element: <AdminCourseManagement />,
+      },
+      {
+        path: "course-view",
+        element: <AdminCourseView />,
       },
       {
         path: "students",
